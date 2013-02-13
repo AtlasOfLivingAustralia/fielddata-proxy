@@ -10,6 +10,9 @@ class Species {
     String sourceId
     String source
 
+    static hasMany = [profileElements : SpeciesProfile]
+
+
     static constraints = {
     }
 
@@ -23,5 +26,7 @@ class Species {
         scientificName column: "scientific_name"
         commonName column:  "common_name"
         taxonGroupId column: "taxon_group_id"
+
+        profileElements column: 'indicator_species_id',joinTable: false
     }
 }
