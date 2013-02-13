@@ -26,15 +26,22 @@ class SurveyController {
     }
 
     def get() {
+        def surveysOnDevice = params.surveysOnDevice?'&surveysOnDevice='+params.surveysOnDevice:''
 
-        def groupId
-        def groupsUrl = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/taxon/getTaxonGroupById.htm?id="
+        def url = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/application/survey.htm?ident=${params.ident}&sid=${params.id}${surveysOnDevice}".toURL()
+        doGet(url)
+    }
 
+    def getWithoutSpecies() {
         def surveysOnDevice = params.surveysOnDevice?'&surveysOnDevice='+params.surveysOnDevice:''
 
         def url = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/application/surveyDownload.htm?ident=${params.ident}&sid=${params.id}${surveysOnDevice}".toURL()
-        // Previous version, need to leave here to support old versions.
-        // def url = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/application/survey.htm?ident=${params.ident}&sid=${params.id}${surveysOnDevice}".toURL()
+        doGet(url)
+    }
+
+    def doGet(URL url) {
+        def groupId
+        def groupsUrl = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/taxon/getTaxonGroupById.htm?id="
 
         def JsonSlurper slurper = new JsonSlurper()
 
