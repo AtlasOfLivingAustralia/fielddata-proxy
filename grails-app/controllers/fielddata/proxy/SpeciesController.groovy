@@ -5,7 +5,6 @@ import javax.servlet.http.HttpServletResponse
 
 class SpeciesController {
 
-    // The current species for survey webservice doesn't return the taxon group or lsid so we are rolling or own.
     def speciesForSurvey() {
 
         int max = params.int("maxResults") ?: 100
@@ -37,23 +36,31 @@ class SpeciesController {
             def speciesList
 
             if (speciesCount > 0) {
-                speciesList = Survey.executeQuery("select sp from Survey surv join surv.species sp where surv.id = :id "+
-                        "and sp.id not in (select survey_sp.id from Survey s2 join s2.species survey_sp where s2.id in (:notIds)) order by sp.id asc",
-                        [notIds: downloadedSurveys, id:params.int("surveyId"), max:max, offset:offset])
+                speciesList = Survey.executeQuery("select sp, e from Survey surv join surv.species sp left join sp.profileElements e where surv.id = :id "+
+                        "and sp.id not in (select survey_sp.id from Survey s2 join s2.species survey_sp where sp.portalId = :portalId and s2.id in (:notIds))" +
+                        "and e.type = 'thumb' order by sp.id asc",
+                        [notIds: downloadedSurveys, id:params.int("surveyId"), portalId:survey.portalId,  max:max, offset:offset])
             }
             else {
                 // If a Survey has no Species specified, the Survey accepts any Species defined in the portal.
-                speciesList = Species.executeQuery("from Species sp where sp.id not in (:notIds) order by sp.id asc",
-                        [ notIds:downloadedSurveys, max:max, offset:offset])
+                speciesList = Species.executeQuery("from Species sp left join sp.profileElements e " +
+                        "where sp.portalId = :portalId and sp.id not in (:notIds) " +
+                        "and e.type = 'thumb' order by sp.id asc",
+                        [ portalId: survey.portalId, notIds:downloadedSurveys, max:max, offset:offset])
             }
 
+            // The join on the SpeciesProfile association results in an List containing elements of type
+            // array of [Species, SpeciesProfile] being returned from the query.
+            // It is possible there will be duplicate Species returned (if there is more than one "thumb" profile
+            // element)
+            result.list = speciesList.collect { results ->
 
-            result.list = speciesList.collect { species ->
-                return [server_id : species.id,
-                        scientificName : species.scientificName,
-                        commonName : species.commonName,
-                        lsid : species.sourceId,
-                        taxonGroupId : species.taxonGroupId]
+                return [server_id : results[0].id,
+                        scientificName : results[0].scientificName,
+                        commonName : results[0].commonName,
+                        lsid : results[0].sourceId,
+                        taxonGroupId : results[0].taxonGroupId,
+                        profileImageUUID : results[1].content]
             }
         }
         response.setContentType("application/json")
