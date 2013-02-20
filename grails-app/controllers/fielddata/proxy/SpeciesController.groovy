@@ -1,4 +1,6 @@
 package fielddata.proxy
+
+import dto.SpeciesGroupDTO
 import grails.converters.JSON
 
 import javax.servlet.http.HttpServletResponse
@@ -65,5 +67,45 @@ class SpeciesController {
         }
         response.setContentType("application/json")
         render result as JSON
+    }
+
+    def speciesGroups() {
+
+        Portal portal = Portal.find({path == params.portal})
+        response.setContentType("application/json")
+        def query = SpeciesGroup.where({portalId == portal.id && name != 'Field Names' && name != "Life"})
+        def groups = query.list(sort:'name')
+
+        List topLevelGroups = new ArrayList();
+
+        groups.each{
+            add(topLevelGroups, it.name, it.id)
+        }
+
+        render topLevelGroups as JSON
+    }
+
+    private void add(List groups, String name, int leafId) {
+
+        // If the name has no more "_" characters it is guaranteed unique.
+        // Create the group using our leaf id
+        if (!name.contains("_")) {
+            def leafGroup = new SpeciesGroupDTO(name, leafId)
+            groups.add(leafGroup)
+        }
+
+        // Otherwise split off the next parent group name and find or create it.
+        else {
+            String[] names = name.split("_", 2)
+
+            String parentName = names[0]
+            String childName = names[1]
+            SpeciesGroupDTO parent = groups.find({it.name == parentName})
+            if (parent == null) {
+                parent = new SpeciesGroupDTO(parentName)
+                groups.add(parent)
+            }
+            add(parent.subgroups, childName, leafId)
+        }
     }
 }
