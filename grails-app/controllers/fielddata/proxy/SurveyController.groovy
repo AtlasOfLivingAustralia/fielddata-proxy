@@ -53,6 +53,9 @@ class SurveyController {
         def geoMap = GeoMap.findBySurveyId(params.id)
 
         survey.map = geoMap
+        survey.survey_template.Metadata = ""
+        def surveyFromDb = Survey.get(params.id);
+        survey.imageUrl = surveyFromDb.getLogoUrl()
 
         response.setContentType("application/json")
 
@@ -84,7 +87,15 @@ class SurveyController {
     }
 
     def download() {
-        def url = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/files/downloadByUUID.htm?uuid=${params.uuid}"
+        def urlSuffix
+        if (params.uuid) {
+            urlSuffix = "downloadByUUID.htm?uuid=${params.uuid}"
+        }
+        else {
+            urlSuffix = "download.htm?className=${params.className}&id=${params.classId}&fileName=${params.fileName}"
+        }
+        def url = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/files/${urlSuffix}"
+
         HttpClient http = new DefaultHttpClient()
         HttpGet get = new HttpGet(url)
 
@@ -93,6 +104,8 @@ class SurveyController {
         response.outputStream << downloadResponse.getEntity().content
         return null
     }
+
+
 
     def login()  {
         def username = URLEncoder.encode(params.username, "UTF-8")

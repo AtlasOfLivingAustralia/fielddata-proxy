@@ -16,6 +16,7 @@ class Survey {
         portalId column : 'portal_id'
         attributes joinTable: [key: 'survey_survey_id', column: 'attributes_attribute_id']
         species joinTable: [name: 'survey_indicator_species', key: 'survey_survey_id', column:  'species_indicator_species_id']
+        metaData joinTable: [name: 'survey_metadata', key: 'survey_survey_id', column: 'metadata_id']
     }
     static constraints = {
     }
@@ -33,6 +34,14 @@ class Survey {
             }
         })
         return attributes
+    }
+
+    public String getLogoUrl() {
+        Metadata logo = metaData.find({it.key == "SurveyLogo"});
+        if (logo && logo.value) {
+            return "/survey/download?className=au.com.gaiaresources.bdrs.model.metadata.Metadata&classId=${logo.id}&fileName=${logo.value}"
+        }
+        return "";
     }
 
 }
