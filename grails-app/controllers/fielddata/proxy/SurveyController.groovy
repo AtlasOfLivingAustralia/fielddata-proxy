@@ -39,8 +39,7 @@ class SurveyController {
         doGet(url)
     }
 
-    def doGet(URL url) {
-        def groupId
+    private def doGet(URL url) {
         def groupsUrl = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/taxon/getTaxonGroupById.htm?id="
 
         def JsonSlurper slurper = new JsonSlurper()
@@ -57,9 +56,33 @@ class SurveyController {
         def surveyFromDb = Survey.get(params.id);
         survey.imageUrl = surveyFromDb.getLogoUrl()
 
+        addNestedAttributes(survey, survey.attributesAndOptions)
+
         response.setContentType("application/json")
 
         render survey as JSON
+    }
+
+    private def addNestedAttributes(Map survey, List attributes) {
+        attributes.each({
+            if (Attribute.supportsNestedAttributes(it.typeCode)) {
+                if (it.censusMethod) {
+                    def censusMethod
+                    if (it.censusMethod instanceof Integer) {
+                        censusMethod = survey.survey_template.CensusMethod[it?.censusMethod.toString()]
+                    }
+                    else if (it.censusMethod.attributes) {
+                        censusMethod = it.censusMethod
+                    }
+                    it.nestedAttributes = []
+                    censusMethod.attributes.each {attribute ->
+                        def nestedAttribute = survey.survey_template?.Attribute[attribute.toString()]
+                        it.nestedAttributes << nestedAttribute
+                        addNestedAttributes(survey, [nestedAttribute])
+                    }
+                }
+            }
+        })
     }
 
     def upload() {

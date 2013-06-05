@@ -23,4 +23,8 @@ class Attribute {
         description column: "description"
         typeCode : column: "type_code"
     }
+
+    static boolean supportsNestedAttributes(String attributeType) {
+        return attributeType == "CR" || attributeType == "CC"
+    }
 }
