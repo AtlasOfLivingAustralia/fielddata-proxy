@@ -58,8 +58,15 @@ class SurveyController {
 
         addNestedAttributes(survey, survey.attributesAndOptions)
 
+        // These attributes can be quite large and as they are not used by the client there is no point
+        // sending them over the wire.
+        survey.survey_template.Attributes = ""
+        survey.survey_template.AttributeOptions = ""
+        survey.survey_template.CensusMethods = ""
+
         response.setContentType("application/json")
 
+        println survey as JSON
         render survey as JSON
     }
 
@@ -77,6 +84,11 @@ class SurveyController {
                     it.nestedAttributes = []
                     censusMethod.attributes.each {attribute ->
                         def nestedAttribute = survey.survey_template?.Attribute[attribute.toString()]
+                        def options = []
+                        nestedAttribute.options.each({
+                            options << survey.survey_template?.AttributeOption[it.toString()]
+                        })
+                        nestedAttribute.options = options
                         it.nestedAttributes << nestedAttribute
                         addNestedAttributes(survey, [nestedAttribute])
                     }
