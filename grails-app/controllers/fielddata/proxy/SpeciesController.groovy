@@ -38,16 +38,17 @@ class SpeciesController {
             def speciesList
 
             if (speciesCount > 0) {
-                speciesList = Survey.executeQuery("select sp, e from Survey surv join surv.species sp left join sp.profileElements e where surv.id = :id "+
-                        "and sp.id not in (select survey_sp.id from Survey s2 join s2.species survey_sp where sp.portalId = :portalId and s2.id in (:notIds))" +
-                        "and e.type = 'thumb' order by sp.id asc",
+                speciesList = Survey.executeQuery("select sp, e from Survey surv join surv.species sp left join sp.profileElements e with e.type = 'thumb' " +
+                        "where surv.id = :id and sp.id not in " +
+                        "(select survey_sp.id from Survey s2 join s2.species survey_sp where sp.portalId = :portalId and s2.id in (:notIds)) " +
+                        "order by sp.id asc",
                         [notIds: downloadedSurveys, id:params.int("surveyId"), portalId:survey.portalId,  max:max, offset:offset])
             }
             else {
                 // If a Survey has no Species specified, the Survey accepts any Species defined in the portal.
-                speciesList = Species.executeQuery("from Species sp left join sp.profileElements e " +
+                speciesList = Species.executeQuery("from Species sp left join sp.profileElements e with e.type = 'thumb' " +
                         "where sp.portalId = :portalId and sp.id not in (:notIds) " +
-                        "and e.type = 'thumb' order by sp.id asc",
+                        "order by sp.id asc",
                         [ portalId: survey.portalId, notIds:downloadedSurveys, max:max, offset:offset])
             }
 
@@ -62,7 +63,7 @@ class SpeciesController {
                         commonName : results[0].commonName,
                         lsid : results[0].sourceId,
                         taxonGroupId : results[0].taxonGroupId,
-                        profileImageUUID : results[1].content]
+                        profileImageUUID : results[1]?.content]
             }
         }
         response.setContentType("application/json")
