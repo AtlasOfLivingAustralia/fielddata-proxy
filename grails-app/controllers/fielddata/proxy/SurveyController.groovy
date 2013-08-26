@@ -56,6 +56,11 @@ class SurveyController {
         def surveyFromDb = Survey.get(params.id);
         survey.imageUrl = surveyFromDb.getLogoUrl()
 
+        int polygonCensusMethod = supportsPolygon(survey.censusMethods)
+
+        survey.locationPolygon = (polygonCensusMethod > 0)
+        survey.polygonCensusMethod = polygonCensusMethod
+
         addNestedAttributes(survey, survey.attributesAndOptions)
 
         // These attributes can be quite large and as they are not used by the client there is no point
@@ -88,6 +93,7 @@ class SurveyController {
                         nestedAttribute.options.each({
                             options << survey.survey_template?.AttributeOption[it.toString()]
                         })
+                        nestedAttribute.server_id = nestedAttribute.id
                         nestedAttribute.options = options
                         it.nestedAttributes << nestedAttribute
                         addNestedAttributes(survey, [nestedAttribute])
@@ -102,6 +108,7 @@ class SurveyController {
         HttpClient http = new DefaultHttpClient()
         HttpPost post = new HttpPost(url)
         def postParams = new ArrayList<NameValuePair>()
+
         postParams.add(new BasicNameValuePair("ident", params.ident))
         postParams.add(new BasicNameValuePair("inFrame", "false"))
         postParams.add(new BasicNameValuePair("syncData", params.syncData))
@@ -163,6 +170,23 @@ class SurveyController {
         response.setContentType("text/html")
 
         render url.getText()
+
+    }
+
+
+    def supportsPolygon(censusMethods) {
+
+        def result = -1
+        censusMethods.each{
+            def censusMethod = CensusMethod.load(it.server_id)
+            censusMethod.metaData?.each {
+                if (censusMethod.supportsPolygon()) {
+                    result = censusMethod.id
+                    return result
+                }
+            }
+        }
+        return result
 
     }
 }
