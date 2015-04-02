@@ -104,6 +104,28 @@ class SurveyController {
     }
 
     def upload() {
+        // HACKITY HACK: map WarrumBungles mobileLocation to location/lat/lng
+        if ("wfr".equalsIgnoreCase(params.portal)) {
+            def records = new JsonSlurper().parseText(params.syncData)
+            for (def record in records) {
+                for (def attr in record.attributeValues) {
+                    if (attr.attribute_id == 9739 /* 10546 in root-uat */) {
+                        String mobileLocation = attr.value
+                        if ("Pincham Car Park".equals(mobileLocation)) {
+                            record.location = 6014 /* 4241 in root-uat */
+                            record.latitude = -31.296497000000027
+                            record.longitude = 148.99462432222
+                        } else if ("White Gum Lookout".equals(mobileLocation)) {
+                            record.location = 6013 /* 4242 in root-uat */
+                            record.latitude = -31.292565000000003
+                            record.longitude = 149.03878485833
+                        }
+                    }
+                }
+            }
+            params.syncData = (records as JSON).toString()
+        }
+
         def url = "${grailsApplication.config.fieldDataServerUrl}/${params.portal}/webservice/application/clientSync.htm"
         HttpClient http = new DefaultHttpClient()
         HttpPost post = new HttpPost(url)
